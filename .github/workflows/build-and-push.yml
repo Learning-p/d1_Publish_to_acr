@@ -1,0 +1,44 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Login to Azure
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+
+    # Login to ACR
+    - name: Login to Azure Container Registry
+      run: |
+        az acr login --name ${{ secrets.ACR_NAME }}
+
+    # Build Docker image
+    - name: Build Docker Image
+      run: |
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} .
+
+    # Push Docker image to ACR
+    - name: Push Docker Image
+      run: |
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }}
+
+    # Optionally tag 'latest'
+    - name: Tag 'latest'
+      run: |
+        docker tag ${{ secrets.ACR_NAME }}.azurecr.io/myapp:${{ github.sha }} ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest
